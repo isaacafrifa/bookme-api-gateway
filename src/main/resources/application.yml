@@ -17,3 +17,23 @@ spring:
             filters:
               - PrefixPath=/api/v1
               - AddResponseHeader=X-Powered-By,IAM Gateway Service
+          - id: booking-route
+            uri:
+              ${BOOKING_ROUTE_URI:http://localhost:8081}
+            predicates:
+              - Path=/bookings/**
+            filters:
+              - PrefixPath=/api/v1
+              - AddResponseHeader=X-Powered-By,IAM Gateway Service
+## Actuator props
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      ## allow downstream apis to access the actuator of this api gateway
+    gateway:
+      enabled: true
