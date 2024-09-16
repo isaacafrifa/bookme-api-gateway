@@ -1,0 +1,19 @@
+server:
+  port: 9000
+
+# Gateway Routes
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: users-route
+            uri:
+              ${USERS_ROUTE_URI:http://localhost:8080/api/v1/users}
+            predicates:
+              - Path=/users/**
+            filters:
+              - PrefixPath=/api/v1
+              - AddResponseHeader=X-Powered-By,IAM Gateway Service
