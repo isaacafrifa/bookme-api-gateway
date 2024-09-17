@@ -1,7 +1,7 @@
 server:
   port: 9000
 
-# Gateway Routes
+## Gateway Routes
 spring:
   application:
     name: api-gateway
@@ -25,6 +25,22 @@ spring:
             filters:
               - PrefixPath=/api/v1
               - AddResponseHeader=X-Powered-By,IAM Gateway Service
+          - id: user-swagger-route
+            uri:
+              ${USER_ROUTE_URI:http://localhost:8080}
+            predicates:
+              - Path=/aggregate/user-service/api-docs # route path
+            filters:
+              - SetPath=/v3/api-docs # forwards to http://localhost:8080/v3/api-docs
+          - id: booking-swagger-route
+            uri:
+              ${BOOKING_ROUTE_URI:http://localhost:8081}
+            predicates:
+              - Path=/aggregate/booking-service/api-docs
+            filters:
+              - SetPath=/v3/api-docs
+
+
 ## Actuator props
 management:
   endpoints:
@@ -37,3 +53,15 @@ management:
       ## allow downstream apis to access the actuator of this api gateway
     gateway:
       enabled: true
+
+## API Doc props
+springdoc:
+  swagger-ui:
+    path: /api-docs/swagger
+    urls:
+      - name: User Service
+        url: /aggregate/user-service/api-docs
+      - name: Booking Service
+        url: /aggregate/booking-service/api-docs
+  api-docs:
+    path: /api-docs
