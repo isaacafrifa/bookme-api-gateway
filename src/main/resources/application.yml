@@ -40,20 +40,6 @@ spring:
             filters:
               - SetPath=/v3/api-docs
 
-
-## Actuator props
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-      ## allow downstream apis to access the actuator of this api gateway
-    gateway:
-      enabled: true
-
 ## API Doc props
 springdoc:
   swagger-ui:
@@ -65,3 +51,38 @@ springdoc:
         url: /aggregate/booking-service/api-docs
   api-docs:
     path: /api-docs
+
+## Actuator props
+management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      ## allow downstream apis to access the actuator of this api gateway
+    gateway:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+## Resilence4J props
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        register-health-indicator: true
+        sliding-window-type: count_based
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state:
+          seconds: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+  timelimiter:
+    configs:
+      default:
+        timeout-duration:
+          seconds: 3
