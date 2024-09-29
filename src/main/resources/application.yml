@@ -6,25 +6,25 @@ spring:
   application:
     name: api-gateway
   cloud:
+    circuitbreaker:
+      resilience4j:
+        enabled: true
     gateway:
       mvc:
         routes:
-          - id: users-route
-            uri:
-              ${USERS_ROUTE_URI:http://localhost:8080}
-            predicates:
-              - Path=/users/**
-            filters:
-              - PrefixPath=/api/v1
-              - AddResponseHeader=X-Powered-By,IAM Gateway Service
-          - id: booking-route
-            uri:
-              ${BOOKING_ROUTE_URI:http://localhost:8081}
-            predicates:
-              - Path=/bookings/**
-            filters:
-              - PrefixPath=/api/v1
-              - AddResponseHeader=X-Powered-By,IAM Gateway Service
+#          - id: booking-route
+#            uri:
+#              ${BOOKING_ROUTE_URI:http://localhost:8081}
+#            predicates:
+#              - Path=/bookings/**
+#            filters:
+#              - PrefixPath=/api/v1
+#              - AddResponseHeader=X-Powered-By, IAM Gateway Service
+#              - name: CircuitBreaker
+#                args:
+#                  id: bookingCircuitBreaker
+#                  name: bookingCircuitBreaker
+#                  fallbackUri: forward:/fallback
           - id: user-swagger-route
             uri:
               ${USER_ROUTE_URI:http://localhost:8080}
@@ -40,7 +40,8 @@ spring:
             filters:
               - SetPath=/v3/api-docs
 
-## API Doc props
+  main:
+    allow-bean-definition-overriding: true
 springdoc:
   swagger-ui:
     path: /api-docs/swagger
@@ -54,10 +55,10 @@ springdoc:
 
 ## Actuator props
 management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: "*"
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics
   endpoint:
     health:
       show-details: always
