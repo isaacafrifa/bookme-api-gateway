@@ -41,6 +41,10 @@ spring:
               - Path=/aggregate/user-service/api-docs # route path
             filters:
               - SetPath=/v3/api-docs # forwards to http://localhost:8080/v3/api-docs
+              - name: CircuitBreaker
+                args:
+                  name: myCircuitBreaker
+                  fallbackUri: forward:/usersFallback
           - id: booking-swagger-route
             uri:
               ${BOOKING_SERVICE_URI:http://localhost:8081}
@@ -48,6 +52,10 @@ spring:
               - Path=/aggregate/booking-service/api-docs
             filters:
               - SetPath=/v3/api-docs
+              - name: CircuitBreaker
+                args:
+                  name: myCircuitBreaker
+                  fallbackUri: forward:/bookingsFallback
 
 ## API docs props
 springdoc:
