@@ -1,7 +1,6 @@
 server:
   port: 9000
 
-## Gateway Routes
 spring:
   application:
     name: api-gateway
@@ -10,38 +9,47 @@ spring:
       resilience4j:
         enabled: true
     gateway:
-      mvc:
-        routes:
-#          - id: booking-route
-#            uri:
-#              ${BOOKING_ROUTE_URI:http://localhost:8081}
-#            predicates:
-#              - Path=/bookings/**
-#            filters:
-#              - PrefixPath=/api/v1
-#              - AddResponseHeader=X-Powered-By, IAM Gateway Service
-#              - name: CircuitBreaker
-#                args:
-#                  id: bookingCircuitBreaker
-#                  name: bookingCircuitBreaker
-#                  fallbackUri: forward:/fallback
+      ## Gateway Routes
+      routes:
+          - id: user-service-route
+            uri: ${USER_SERVICE_URI:http://localhost:8080}
+            predicates:
+              - Path=/users/**
+            filters:
+              - PrefixPath=/api/v1
+              - AddResponseHeader=X-Powered-By, IAM Gateway Service
+              - name: CircuitBreaker
+                args:
+                  name: myCircuitBreaker
+                  fallbackUri: forward:/usersFallback
+          - id: booking-service-route
+            uri:
+              ${BOOKING_SERVICE_URI:http://localhost:8081}
+            predicates:
+              - Path=/bookings/**
+            filters:
+              - PrefixPath=/api/v1
+              - AddResponseHeader=X-Powered-By, IAM Gateway Service
+              - name: CircuitBreaker
+                args:
+                  name: myCircuitBreaker
+                  fallbackUri: forward:/bookingsFallback
           - id: user-swagger-route
             uri:
-              ${USER_ROUTE_URI:http://localhost:8080}
+              ${USER_SERVICE_URI:http://localhost:8080}
             predicates:
               - Path=/aggregate/user-service/api-docs # route path
             filters:
               - SetPath=/v3/api-docs # forwards to http://localhost:8080/v3/api-docs
           - id: booking-swagger-route
             uri:
-              ${BOOKING_ROUTE_URI:http://localhost:8081}
+              ${BOOKING_SERVICE_URI:http://localhost:8081}
             predicates:
               - Path=/aggregate/booking-service/api-docs
             filters:
               - SetPath=/v3/api-docs
 
-  main:
-    allow-bean-definition-overriding: true
+## API docs props
 springdoc:
   swagger-ui:
     path: /api-docs/swagger
@@ -82,6 +90,9 @@ resilience4j:
           seconds: 5
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      myCircuitBreaker:
+        base-config: default
   timelimiter:
     configs:
       default:
