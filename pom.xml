@@ -29,6 +29,7 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <springdoc-openapi.version>2.5.0</springdoc-openapi.version>
     </properties>
     <dependencies>
         <dependency>
@@ -43,13 +44,13 @@
         <!-- Api Doc-->
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.5.0</version>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>${springdoc-openapi.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
-            <version>2.5.0</version>
+            <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+            <version>${springdoc-openapi.version}</version>
         </dependency>
         <!-- resilience4j-->
         <dependency>
