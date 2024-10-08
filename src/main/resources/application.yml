@@ -69,12 +69,13 @@ springdoc:
   api-docs:
     path: /api-docs
 
-## Actuator props
+## Actuator & monitoring props
 management:
   endpoints:
     web:
       exposure:
-        include: health, metrics
+        include:
+          health, info, metrics, prometheus
   endpoint:
     health:
       show-details: always
@@ -84,8 +85,20 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+  observations:
+    key-values:
+      application: API-Gateway
+  tracing:
+    sampling:
+      probability: 1.0
 
-## Resilence4J props
+## Resilience4J props
 resilience4j:
   circuitbreaker:
     configs:
