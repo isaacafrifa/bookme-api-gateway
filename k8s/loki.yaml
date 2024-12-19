@@ -1,0 +1,42 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  labels: # Label the deployment for easy identification and selection
+    app: loki
+spec:
+  replicas: 1
+  selector: # Match pods with the specified label
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels: # Label the pods for identification
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:main
+          ports:
+            - containerPort: 3100
+          # Provide command-line arguments to the Loki server
+          args: ["-config.file=/etc/loki/local-config.yaml"]
+
+---
+
+#Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  labels:
+    app: loki
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3100
+      targetPort: 3100
+      protocol: TCP
+  selector:
+    app: loki
