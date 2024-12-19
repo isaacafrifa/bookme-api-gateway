@@ -20,7 +20,7 @@ spec:
           args:
             - '-config.file=/etc/tempo/tempo.yaml' # Points to the mounted config file from ConfigMap
           ports:
-            - containerPort: 3100 # Main port for Tempo API and Grafana integration
+            - containerPort: 3200 # Main port for Tempo API and Grafana integration
               name: tempo
             - containerPort: 9411 # Accepts traces in Zipkin format from applications
               name: zipkin
@@ -31,12 +31,12 @@ spec:
               mountPath: /tmp/tempo # Persistent storage for trace data
           livenessProbe:
             httpGet:
-              port: 3100
+              port: 3200
               path: /ready # Endpoint for health checks
             initialDelaySeconds: 45
           readinessProbe:
             httpGet:
-              port: 3100
+              port: 3200
               path: /ready # Endpoint for readiness checks
             initialDelaySeconds: 45
       volumes:
@@ -61,7 +61,7 @@ spec:
     app: tempo
   ports:
     - name: tempo
-      port: 3100        # Main API port used by Grafana for querying traces
+      port: 3200        # Main API port used by Grafana for querying traces
       targetPort: tempo
     - name: zipkin
       port: 9411        # Port where applications send Zipkin-formatted traces
@@ -76,7 +76,7 @@ metadata:
 data:
   tempo.yaml: |
     server:
-      http_listen_port: 3100 # Main ingress port for Tempo
+      http_listen_port: 3200 # Main ingress port for Tempo
 
     distributor:
       receivers:
