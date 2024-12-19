@@ -1,0 +1,123 @@
+# Tempo Deployment
+# Manages the distributed tracing backend that collects and stores traces
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+spec:
+  replicas: 1  # Single replica as Tempo can handle multiple incoming connections
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      containers:
+        - name: tempo
+          image: grafana/tempo:2.2.2  # Using specific version for stability
+          args:
+            - '-config.file=/etc/tempo/tempo.yaml' # Points to the mounted config file from ConfigMap
+          ports:
+            - containerPort: 3100 # Main port for Tempo API and Grafana integration
+              name: tempo
+            - containerPort: 9411 # Accepts traces in Zipkin format from applications
+              name: zipkin
+          volumeMounts:
+            - name: tempo-config
+              mountPath: /etc/tempo # ConfigMap containing Tempo configuration
+            - name: tempo-data
+              mountPath: /tmp/tempo # Persistent storage for trace data
+          livenessProbe:
+            httpGet:
+              port: 3100
+              path: /ready # Endpoint for health checks
+            initialDelaySeconds: 45
+          readinessProbe:
+            httpGet:
+              port: 3100
+              path: /ready # Endpoint for readiness checks
+            initialDelaySeconds: 45
+      volumes:
+        - name: tempo-config
+          configMap:
+            name: tempo-configmap
+        - name: tempo-data
+          persistentVolumeClaim:
+            claimName: tempo-pvc # Uses PVC for data persistence across pod restarts
+---
+# Tempo Service
+# Exposes Tempo endpoints to other services in the cluster
+# Service name and ports must align with infra-config.yaml URLs
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo  # Used in MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+  labels:
+    app: tempo
+spec:
+  selector:
+    app: tempo
+  ports:
+    - name: tempo
+      port: 3100        # Main API port used by Grafana for querying traces
+      targetPort: tempo
+    - name: zipkin
+      port: 9411        # Port where applications send Zipkin-formatted traces
+      targetPort: zipkin
+---
+# Tempo ConfigMap
+# Contains Tempo's operational configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-configmap
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3100 # Main ingress port for Tempo
+
+    distributor:
+      receivers:
+        zipkin: # Enables Zipkin protocol support with default settings. Uses default endpoint 0.0.0.0:9411
+          endpoint: "0.0.0.0:9411"
+    storage:
+      trace:
+        backend: local # Using local storage for trace data
+        local:
+          path: /tmp/tempo/blocks # Directory where trace data is stored
+
+    compactor: # Optimizes storage usage and performance
+      compaction: # Controls how traces are stored and cleaned up
+        block_retention: 24h # Traces older than this will be deleted
+---
+# Tempo PersistentVolume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tempo-pv
+spec:
+  capacity:
+    storage: 1Gi    # Matches the PVC request
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce # Matches the PVC access mode
+  persistentVolumeReclaimPolicy: Retain  # Keeps data when PVC is deleted
+  storageClassName: standard  # default className
+  hostPath:    # For local development/testing
+    path: /data/tempo  # Directory on the host machine
+    type: DirectoryOrCreate  # Creates directory if it doesn't exist
+---
+# Tempo PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tempo-pvc
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce # Only one node can mount for writing at a time
+  resources:
+    requests:
+      storage: 1Gi # Storage space for trace data, adjust based on retention and traffic
