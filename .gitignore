@@ -8,7 +8,6 @@ target/
 
 ### k8s files
 *-secrets.yaml
-*-config.yaml
 secrets.yaml
 *-secret.yaml
 *.key
