@@ -1,0 +1,131 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1  # Single replica as we don't need HA for development
+  selector:  # Selector defines how the deployment finds pods to manage
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels: # Labels attached to the pods
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.1.0
+          ports:
+            - containerPort: 3000   # Main Grafana UI and API port
+          # Environment variables for Grafana configuration. These enable anonymous access for development purposes
+          env:
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  key: GF_AUTH_ANONYMOUS_ENABLED
+                  name: grafana-configmap
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              valueFrom:
+                configMapKeyRef:
+                  key: GF_AUTH_ANONYMOUS_ORG_ROLE
+                  name: grafana-configmap
+            - name: GF_AUTH_DISABLE_LOGIN_FORM
+              valueFrom:
+                configMapKeyRef:
+                  key: GF_AUTH_DISABLE_LOGIN_FORM
+                  name: grafana-configmap
+          volumeMounts: # Mount point for datasource configuration
+            - name: grafana-config
+              mountPath: /etc/grafana/provisioning/datasources
+      volumes: # Volumes section defines the storage configuration
+        - name: grafana-config
+          configMap:
+            name: grafana-configmap # References the ConfigMap containing datasource configurations
+
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    # Expose Grafana on port 3000
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+
+---
+# Grafana ConfigMap
+# Contains configuration for Grafana including authN and datasource settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-configmap
+data:
+  # Authentication settings for development environment. Warning: These settings are not recommended for production use
+  GF_AUTH_ANONYMOUS_ENABLED: "true"
+  GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+  GF_AUTH_DISABLE_LOGIN_FORM: "true"
+
+  # Datasource configuration file
+  # Automatically provisions datasources when Grafana starts
+  datasource.yml: |
+    apiVersion: 1
+    datasources:
+      # Prometheus datasource configuration
+      # Used for storing and querying metrics
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.default.svc.cluster.local:9090
+        editable: false
+        jsonData:
+          httpMethod: POST
+          exemplarTraceIdDestinations:
+            - name: trace_id
+              datasourceUid: tempo
+      
+      # Tempo datasource configuration
+      # Used for distributed tracing
+      - name: Tempo
+        type: tempo
+        access: proxy
+        orgId: 1
+        url: http://tempo.default.svc.cluster.local:3200
+        basicAuth: false
+        isDefault: true
+        version: 1
+        editable: false
+        apiVersion: 1
+        uid: tempo
+        jsonData:
+          httpMethod: GET
+          tracesToLogs:
+            datasourceUid: 'loki'
+          nodeGraph:
+            enabled: true
+      
+      # Loki datasource configuration
+      # Used for log aggregation and querying
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        orgId: 1
+        url: http://loki.default.svc.cluster.local:3100
+        basicAuth: false
+        isDefault: false
+        version: 1
+        editable: false
+        apiVersion: 1
+        jsonData:
+          # Configuration for linking logs to traces
+          derivedFields:
+            - datasourceUid: tempo
+              matcherRegex: \[.+,(.+?),
+              name: TraceID
+              url: $${__value.raw}
