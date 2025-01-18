@@ -1,6 +1,11 @@
 server:
   port: 9000
 
+### Loki URL - referenced in 'logback-spring.xml'
+loki:
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+### Other Props
 spring:
   application:
     name: api-gateway
@@ -12,7 +17,7 @@ spring:
       ## Gateway Routes
       routes:
           - id: user-service-route
-            uri: ${USER_SERVICE_URI:http://localhost:8080}
+            uri: ${USER_SERVICE_URL:http://localhost:8080}
             predicates:
               - Path=/users/**
             filters:
@@ -24,7 +29,7 @@ spring:
                   fallbackUri: forward:/usersFallback
           - id: booking-service-route
             uri:
-              ${BOOKING_SERVICE_URI:http://localhost:8081}
+              ${BOOKING_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/bookings/**
             filters:
@@ -36,7 +41,7 @@ spring:
                   fallbackUri: forward:/bookingsFallback
           - id: user-swagger-route
             uri:
-              ${USER_SERVICE_URI:http://localhost:8080}
+              ${USER_SERVICE_URL:http://localhost:8080}
             predicates:
               - Path=/aggregate/user-service/api-docs # route path
             filters:
@@ -47,7 +52,7 @@ spring:
                   fallbackUri: forward:/usersFallback
           - id: booking-swagger-route
             uri:
-              ${BOOKING_SERVICE_URI:http://localhost:8081}
+              ${BOOKING_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/aggregate/booking-service/api-docs
             filters:
