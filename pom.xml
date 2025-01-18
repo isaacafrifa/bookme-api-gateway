@@ -31,6 +31,9 @@
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <springdoc-openapi.version>2.5.0</springdoc-openapi.version>
         <loki.version>1.5.1</loki.version>
+        <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
+        <docker.image.name>isaacafrifa/bm-${project.artifactId}</docker.image.name>
+        <docker.image.tag>${project.version}-${maven.build.timestamp}</docker.image.tag>
     </properties>
     <dependencies>
         <dependency>
@@ -109,6 +112,40 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- This block defines Docker image settings using cloud native build-packs -->
+                    <image>
+                        <name>${docker.image.name}:${docker.image.tag}</name>
+                        <builder>dashaun/builder:tiny</builder><!--  Specify the builder to use for creating the container image  -->
+                        <publish>true</publish>
+                    </image>
+                    <docker>
+                        <publishRegistry>
+                            <username>isaacafrifa</username>
+                            <!--suppress UnresolvedMavenProperty -->
+                            <password>${DOCKER_PASSWORD}</password>
+                        </publishRegistry>
+                    </docker>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Release Plugin: Automates the release process by removing SNAPSHOT,
+     tagging the release in SCM, and preparing for the next development iteration -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <!-- Creates git tags in format v0.0.1, v1.0.0, etc. -->
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <!-- Updates versions in all modules at once during release -->
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                </configuration>
             </plugin>
         </plugins>
     </build>
