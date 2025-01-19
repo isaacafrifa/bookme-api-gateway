@@ -1,0 +1,160 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-app
+  labels:
+    app: gateway-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-app
+  template:
+    metadata:
+      name: gateway-template
+      labels:
+        app: gateway-app
+    spec:
+      containers:
+        - name: gateway-service
+          image: isaacafrifa/bm-api-gateway:0.0.1-SNAPSHOT-20250119-2050
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+          env:
+            # Resilience4J props
+            - name: CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE
+            - name: CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD
+            - name: CIRCUIT_BREAKER_MINIMUM_CALLS
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: CIRCUIT_BREAKER_MINIMUM_CALLS
+            - name: CIRCUIT_BREAKER_WAIT_DURATION_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: CIRCUIT_BREAKER_WAIT_DURATION_SECONDS
+            - name: CIRCUIT_BREAKER_PERMITTED_CALLS_HALF_OPEN
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: CIRCUIT_BREAKER_PERMITTED_CALLS_HALF_OPEN
+            - name: CIRCUIT_BREAKER_TIMEOUT_DURATION
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: CIRCUIT_BREAKER_TIMEOUT_DURATION
+            - name: RETRY_MAX_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: RETRY_MAX_ATTEMPTS
+            - name: RETRY_WAIT_DURATION
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: RETRY_WAIT_DURATION
+            # Shared Infrastructure Variables
+            ## User Service URL
+            - name: USER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: USER_SERVICE_URL
+            ## Booking Service URL
+            - name: BOOKING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: BOOKING_SERVICE_URL
+            ## Loki
+            - name: LOKI_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: LOKI_URL
+            ## rabbitMQ
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key:  RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key:  RABBITMQ_PORT
+            - name: RABBITMQ_MANAGEMENT_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key:  RABBITMQ_MANAGEMENT_PORT
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: RABBITMQ_PASSWORD
+            ## zipkin
+            - name: MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  strategy:
+    # RollingUpdate strategy ensures zero-downtime during deployments by gradually updating pods
+    type: RollingUpdate
+    rollingUpdate:
+      # Allow creating max 1 pod above desired count during updates
+      # Example: If replicas=3, we can have 4 pods temporarily during update
+      maxSurge: 1
+      # Ensure no pods become unavailable during the update
+      # Forces new pods to be ready before removing old ones
+      maxUnavailable: 0
+
+  # add resource limits and requests later
+
+---
+
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+  labels:
+    app: gateway-app    # Match the deployment labels
+spec:
+  type: ClusterIP
+  selector:
+    app: gateway-app  # Matches Deployment's label
+  ports:
+    - protocol: TCP
+      port: 9000      # The port other services use to access
+      targetPort: 9000  # The container port
