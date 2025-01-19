@@ -15,3 +15,5 @@ data:
   USER_SERVICE_URL: "http://user-service.default.svc.cluster.local:8080"
   # Booking Service
   BOOKING_SERVICE_URL: "http://booking-service.default.svc.cluster.local:8081"
+  # API-Gateway Service
+  GATEWAY_SERVICE_URL: "http://gateway-service.default.svc.cluster.local:9000"
