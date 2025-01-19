@@ -73,10 +73,10 @@ data:
             labels:
               application: 'User Service'  # Custom label for better identification
 
-      # Booking Service metrics
-#      - job_name: 'booking-service'
-#        metrics_path: '/actuator/prometheus'
-#        static_configs:
-#          - targets: ['booking-service.default.svc.cluster.local:8081']
-#            labels:
-#              application: 'Booking Service'  # Custom label for better identification
+    #   Booking Service metrics
+      - job_name: 'booking-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['booking-service.default.svc.cluster.local:8081']
+            labels:
+              application: 'Booking Service'  # Custom label for better identification
