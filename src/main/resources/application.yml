@@ -110,12 +110,12 @@ resilience4j:
       default:
         register-health-indicator: true
         sliding-window-type: count_based
-        sliding-window-size: 10
-        failure-rate-threshold: 50
-        minimum-number-of-calls: 5
+        sliding-window-size: ${CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE:10}
+        failure-rate-threshold: ${CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD:50}
+        minimum-number-of-calls: ${CIRCUIT_BREAKER_MINIMUM_CALLS:5}
         wait-duration-in-open-state:
-          seconds: 5
-        permitted-number-of-calls-in-half-open-state: 3
+          seconds: ${CIRCUIT_BREAKER_WAIT_DURATION_SECONDS:5}
+        permitted-number-of-calls-in-half-open-state: ${CIRCUIT_BREAKER_PERMITTED_CALLS_HALF_OPEN:3}
         automatic-transition-from-open-to-half-open-enabled: true
     instances:
       myCircuitBreaker:
@@ -124,10 +124,10 @@ resilience4j:
     configs:
       default:
         timeout-duration:
-          seconds: 3
+          seconds: ${CIRCUIT_BREAKER_TIMEOUT_DURATION:3}
   retry:
     configs:
       default:
-        max-attempts: 3
+        max-attempts: ${RETRY_MAX_ATTEMPTS:3}
         wait-duration:
-          seconds: 2
+          seconds: ${RETRY_WAIT_DURATION:2}
