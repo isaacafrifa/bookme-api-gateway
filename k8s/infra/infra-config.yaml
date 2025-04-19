@@ -17,3 +17,5 @@ data:
   BOOKING_SERVICE_URL: "http://booking-service.default.svc.cluster.local:8081"
   # API-Gateway Service
   GATEWAY_SERVICE_URL: "http://gateway-service.default.svc.cluster.local:9000"
+  # Keycloak
+  KEYCLOAK_DB_NAME: "keycloak"
