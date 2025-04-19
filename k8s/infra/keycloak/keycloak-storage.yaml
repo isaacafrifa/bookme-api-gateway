@@ -1,0 +1,44 @@
+# Keycloak will use a database for persistence. Hence, we need to create a
+# persistent volume and persistent volume claim for the database.
+
+# Define the PersistentVolume first
+# PersistentVolume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: keycloak-db-pv
+  labels: # let's use labels here to help identify and organize Kubernetes resources
+    type: local #'type: local' indicates this storage is local to the cluster
+    app: keycloak # 'app: keycloak' associates this volume with the Keycloak application
+spec:
+  capacity:
+    storage: 500Mi
+  volumeMode: Filesystem # default and most common mode
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain # Keeps data when PVC is deleted
+  storageClassName: standard  # Default storage class in Minikube
+  hostPath:   # For Minikube, uses local machine storage
+    path: "/data/keycloak-db"  # Directory on your host machine
+
+
+---
+
+# PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db-pvc
+  namespace: default # using the default namespace :)
+  labels:
+    type: local
+    app: keycloak # Consistent labeling with PV for better resource tracking
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Request half a gigabyte of storage
+      # Can be increased but not decreased after creation
+      storage: 500Mi #1Gi
+  storageClassName: standard # Must match PV's storageClassName. 'standard' is the default storage class
