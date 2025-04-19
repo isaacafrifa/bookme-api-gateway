@@ -1,0 +1,64 @@
+# Keycloak will use a database for persistence, hence this manifest file
+
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-db
+  labels:
+    app: keycloak  # groups this database deployment with other Keycloak-related resources
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak-db # tells Kubernetes which pods it should manage. This MUST match the template labels
+  template: # Template contains the blueprint for pods
+    metadata:
+      labels:
+        app: keycloak-db #defines what labels the pods will have when created. This MUST match the selector above
+    spec:
+      containers:
+        - name: keycloak-db
+          image: postgres:16.1
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: KEYCLOAK_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: KEYCLOAK_DB_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: KEYCLOAK_DB_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: keycloak-data
+      volumes:
+        - name: keycloak-data # matches volumeMounts name above
+          persistentVolumeClaim:
+            claimName: keycloak-db-pvc # references the PVC in 'keycloak-storage.yaml'
+
+---
+
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-db-service
+  labels:
+    app: keycloak # groups this database service with other Keycloak-related resources
+spec:
+  type: ClusterIP # Only expose the db inside the cluster
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: keycloak-db # Matches Deployment's label
