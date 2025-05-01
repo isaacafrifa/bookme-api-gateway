@@ -1,0 +1,125 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak # groups this deployment with other Keycloak-related resources
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak # tells k8s which pods it should manage. This MUST match the template labels
+  template:
+    metadata:
+      name: keycloak
+      labels:
+        app: keycloak # defines what labels the pods will have when created. This MUST match the selector above
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          args: ["start-dev"] # Add this for development mode
+          env:
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: KEYCLOAK_ADMIN_USERNAME
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: KEYCLOAK_ADMIN_PASSWORD
+            # Keycloak DB Config
+            - name: KC_DB
+              value: "postgres"  # or "mysql" depending on your database
+            - name: KC_DB_URL
+              value: "jdbc:postgresql://keycloak-db-service:5432/${KC_DB_DATABASE}"  # adjust host and port as needed
+            - name: KC_DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: KEYCLOAK_DB_NAME
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: KEYCLOAK_DB_USERNAME
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: infra-secrets
+                  key: KEYCLOAK_DB_PASSWORD
+
+            # Other Keycloak Config
+            - name: KC_HOSTNAME_STRICT # Disables strict hostname checks (allows access via any host e.g. localhost)
+              value: "false"
+            - name: KC_HOSTNAME_STRICT_HTTPS
+              value: "false"
+            - name: KC_HTTP_ENABLED # Enables HTTP (instead of HTTPS only)
+              value: "true"
+            - name: KC_PROXY # Configures proxy behavior; edge is fine for dev and Ingress setups
+              value: "edge"
+            - name: KC_HEALTH_ENABLED # Enables /health/live and /health/ready endpoints
+              value: "true"
+            - name: KC_METRICS_ENABLED # Enables Prometheus metrics at /metrics (remove if you’re not using monitoring)
+              value: "true"
+            - name: PROXY_ADDRESS_FORWARDING # Important when running behind proxies like Ingress; may affect token redirects (Optional in port-forward. Recommended for Ingress)
+              value: "true"
+          # - name: KC_LOG_LEVEL
+          #   value: "DEBUG"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+  strategy:
+      # RollingUpdate strategy ensures zero-downtime during deployments by gradually updating pods
+    type: RollingUpdate
+    rollingUpdate:
+        # Allow creating max 1 pod above desired count during updates
+        # Example: If replicas=3, we can have 4 pods temporarily during update
+      maxSurge: 1
+        # Ensure no pods become unavailable during the update
+        # Forces new pods to be ready before removing old ones
+      maxUnavailable: 0
+
+---
+
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-service
+  labels:
+    app: keycloak # groups this service with other Keycloak-related resources
+spec:
+  selector:
+    app: keycloak # Matches Deployment's label
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8080 # The port other services use to access
+      targetPort: 8080
+
+      

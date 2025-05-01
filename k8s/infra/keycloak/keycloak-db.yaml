@@ -6,16 +6,16 @@ kind: Deployment
 metadata:
   name: keycloak-db
   labels:
-    app: keycloak  # groups this database deployment with other Keycloak-related resources
+    app: keycloak  # Label that identifies this as part of the Keycloak application group
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: keycloak-db # tells Kubernetes which pods it should manage. This MUST match the template labels
+      app: keycloak # Selector for identifying which Pods this Deployment manages - must match Pod template labels below
   template: # Template contains the blueprint for pods
     metadata:
       labels:
-        app: keycloak-db #defines what labels the pods will have when created. This MUST match the selector above
+        app: keycloak # Label applied to Pods - must match Deployment selector above and Service selector below
     spec:
       containers:
         - name: keycloak-db
@@ -42,7 +42,7 @@ spec:
             - mountPath: /var/lib/postgresql/data
               name: keycloak-data
       volumes:
-        - name: keycloak-data # matches volumeMounts name above
+        - name: keycloak-data # Volume name that corresponds to volumeMount above
           persistentVolumeClaim:
             claimName: keycloak-db-pvc # references the PVC in 'keycloak-storage.yaml'
 
@@ -54,11 +54,11 @@ kind: Service
 metadata:
   name: keycloak-db-service
   labels:
-    app: keycloak # groups this database service with other Keycloak-related resources
+    app: keycloak # Label that identifies this service as part of the Keycloak application group
 spec:
-  type: ClusterIP # Only expose the db inside the cluster
+  type: ClusterIP # Internal cluster access only - not exposed externally
   ports:
     - port: 5432
       targetPort: 5432
   selector:
-    app: keycloak-db # Matches Deployment's label
+    app: keycloak # Selects Pods with matching label to receive traffic from this Service
