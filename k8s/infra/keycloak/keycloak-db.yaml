@@ -7,19 +7,24 @@ metadata:
   name: keycloak-db
   labels:
     app: keycloak  # Label that identifies this as part of the Keycloak application group
+    tier: database # Label that identifies this as part of the Keycloak database tier
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: keycloak # Selector for identifying which Pods this Deployment manages - must match Pod template labels below
+      tier: database
   template: # Template contains the blueprint for pods
     metadata:
       labels:
         app: keycloak # Label applied to Pods - must match Deployment selector above and Service selector below
+        tier: database
     spec:
       containers:
         - name: keycloak-db
           image: postgres:16.1
+          ports:
+            - containerPort: 5432
           env:
             - name: POSTGRES_DB
               valueFrom:
@@ -36,15 +41,16 @@ spec:
                 secretKeyRef:
                   name: infra-secrets
                   key: KEYCLOAK_DB_PASSWORD
-          ports:
-            - containerPort: 5432
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: keycloak-data
+              subPath: postgres # This helps avoid unintended overwrites when multiple PVCs are reused.
       volumes:
         - name: keycloak-data # Volume name that corresponds to volumeMount above
           persistentVolumeClaim:
             claimName: keycloak-db-pvc # references the PVC in 'keycloak-storage.yaml'
+      securityContext:
+        fsGroup: 999 # Ensures the Postgres process (running as UID 999) can write to mounted volumes
 
 ---
 
@@ -55,6 +61,7 @@ metadata:
   name: keycloak-db-service
   labels:
     app: keycloak # Label that identifies this service as part of the Keycloak application group
+    tier: database
 spec:
   type: ClusterIP # Internal cluster access only - not exposed externally
   ports:
@@ -62,3 +69,4 @@ spec:
       targetPort: 5432
   selector:
     app: keycloak # Selects Pods with matching label to receive traffic from this Service
+    tier: database

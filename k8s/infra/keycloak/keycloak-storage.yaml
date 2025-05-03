@@ -20,6 +20,7 @@ spec:
   storageClassName: standard  # Default storage class in Minikube
   hostPath:   # For Minikube, uses local machine storage
     path: "/data/keycloak-db"  # Directory on your host machine
+    type: DirectoryOrCreate # Creates the directory on the host if it doesn't exist (used with hostPath)
 
 
 ---
@@ -31,7 +32,6 @@ metadata:
   name: keycloak-db-pvc
   namespace: default # using the default namespace :)
   labels:
-    type: local
     app: keycloak # Consistent labeling with PV for better resource tracking
 spec:
   accessModes:
