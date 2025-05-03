@@ -18,4 +18,4 @@ data:
   # API-Gateway Service
   GATEWAY_SERVICE_URL: "http://gateway-service.default.svc.cluster.local:9000"
   # Keycloak
-  KEYCLOAK_DB_NAME: "keycloak"
+  KEYCLOAK_DB_NAME: "keycloak-db"
