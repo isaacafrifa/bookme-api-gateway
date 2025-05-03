@@ -2,19 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: keycloak
+  name: keycloak-app
   labels:
     app: keycloak # groups this deployment with other Keycloak-related resources
+    tier: backend
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: keycloak # tells k8s which pods it should manage. This MUST match the template labels
+      tier: backend
   template:
     metadata:
-      name: keycloak
       labels:
         app: keycloak # defines what labels the pods will have when created. This MUST match the selector above
+        tier: backend
     spec:
       containers:
         - name: keycloak
@@ -22,7 +24,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
-          args: ["start-dev"] # Add this for development mode
+          args: ["start-dev"] # Starts Keycloak in development mode (no TLS, faster startup)
           env:
             - name: KEYCLOAK_ADMIN
               valueFrom:
@@ -36,7 +38,7 @@ spec:
                   key: KEYCLOAK_ADMIN_PASSWORD
             # Keycloak DB Config
             - name: KC_DB
-              value: "postgres"  # or "mysql" depending on your database
+              value: "postgres" # Sets Keycloak's DB vendor (supports: postgres, mysql, etc.)
             - name: KC_DB_URL
               value: "jdbc:postgresql://keycloak-db-service:5432/${KC_DB_DATABASE}"  # adjust host and port as needed
             - name: KC_DB_DATABASE
@@ -62,7 +64,7 @@ spec:
               value: "false"
             - name: KC_HTTP_ENABLED # Enables HTTP (instead of HTTPS only)
               value: "true"
-            - name: KC_PROXY # Configures proxy behavior; edge is fine for dev and Ingress setups
+            - name: KC_PROXY # Configures proxy behavior; required when running behind a reverse proxy (like ingress)
               value: "edge"
             - name: KC_HEALTH_ENABLED # Enables /health/live and /health/ready endpoints
               value: "true"
@@ -70,8 +72,12 @@ spec:
               value: "true"
             - name: PROXY_ADDRESS_FORWARDING # Important when running behind proxies like Ingress; may affect token redirects (Optional in port-forward. Recommended for Ingress)
               value: "true"
-          # - name: KC_LOG_LEVEL
-          #   value: "DEBUG"
+#            - name: KC_LOG_LEVEL
+#              value: "DEBUG"
+#            - name: KC_HTTP_PORT
+#              value: "8080"
+#            - name: JAVA_OPTS_APPEND
+#              value: "-Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
           resources:
             requests:
               memory: "512Mi"
@@ -113,13 +119,13 @@ metadata:
   name: keycloak-service
   labels:
     app: keycloak # groups this service with other Keycloak-related resources
+    tier: backend
 spec:
   selector:
     app: keycloak # Matches Deployment's label
+    tier: backend
   type: ClusterIP
   ports:
     - protocol: TCP
-      port: 8080 # The port other services use to access
-      targetPort: 8080
-
-      
+      port: 8080 # Port that other services in the cluster will use to connect to this service
+      targetPort: 8080 # Port on the Keycloak container where the application is actually running
