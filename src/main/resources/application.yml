@@ -21,7 +21,7 @@ spring:
             predicates:
               - Path=/users/**
             filters:
-              - PrefixPath=/api/v1
+#              - PrefixPath=/api/v1
               - AddResponseHeader=X-Powered-By, IAM Gateway Service
               - name: CircuitBreaker
                 args:
@@ -33,7 +33,7 @@ spring:
             predicates:
               - Path=/bookings/**
             filters:
-              - PrefixPath=/api/v1
+#              - PrefixPath=/api/v1
               - AddResponseHeader=X-Powered-By, IAM Gateway Service
               - name: CircuitBreaker
                 args:
@@ -49,7 +49,7 @@ spring:
               - name: CircuitBreaker
                 args:
                   name: myCircuitBreaker
-                  fallbackUri: forward:/usersFallback
+                  fallbackUri: forward:/userServiceDocsFallback
           - id: booking-swagger-route
             uri:
               ${BOOKING_SERVICE_URL:http://localhost:8081}
@@ -60,7 +60,23 @@ spring:
               - name: CircuitBreaker
                 args:
                   name: myCircuitBreaker
-                  fallbackUri: forward:/bookingsFallback
+                  fallbackUri: forward:/bookingServiceDocsFallback
+  ### Security Props
+  security:
+    oauth2:
+      resourceserver:
+        # JWT Validation Flow:
+        # 1. Spring Security receives the JWT token
+        # 2. Fetches public keys (JWKS) from jwk-set-uri endpoint
+        # 3. Uses matching public key (by 'kid' header) to verify signature
+        # 4. Validates standard claims (exp, iat, iss, etc.)
+        jwt:
+          # The issuer-uri specifies the identity provider (i.e. Keycloak) that issues the JWT tokens
+          # Spring Security uses this to validate the 'iss' claim in the JWT
+          issuer-uri: ${KEYCLOAK_JWT_ISSUER_URI:http://localhost:8080/realms/bookme-realm}
+          # This endpoint provides the public keys needed to verify the JWT signatures
+          # Spring Security automatically fetches these keys to validate that the tokens were actually signed by our Keycloak server
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/bookme-realm/protocol/openid-connect/certs}
 
 ## API docs props
 springdoc:
@@ -83,6 +99,8 @@ management:
           health, info, metrics, prometheus
   endpoint:
     health:
+      probes:
+        enabled: true
       show-details: always
       ## allow downstream apis to access the actuator of this api gateway
     gateway:

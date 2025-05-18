@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: gateway-service
-          image: isaacafrifa/bm-api-gateway:0.0.1-SNAPSHOT-20250119-2050
+          image: isaacafrifa/bm-api-gateway:0.0.1-SNAPSHOT-20250518-2022
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9000
@@ -116,18 +116,39 @@ spec:
                 configMapKeyRef:
                   name: infra-config
                   key: MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+            ## keycloak
+            - name: KEYCLOAK_JWT_ISSUER_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: KEYCLOAK_JWT_ISSUER_URI
+            - name: KEYCLOAK_JWK_SET_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: infra-config
+                  key: KEYCLOAK_JWK_SET_URI
+          # Lower resources ideal for local dev. Update when doing heavy processing or caching.
+          resources:
+            requests:
+              memory: "300Mi"
+              cpu: "200m"
+            limits:
+              memory: "600Mi"
+              cpu: "500m"
+         # Lower resource limits may lead to slow boot (~60s+); adjust readiness/liveness probes accordingly
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 9000
-            initialDelaySeconds: 30
-            periodSeconds: 10
+            initialDelaySeconds: 120  # Gives app plenty of time to start
+            periodSeconds: 10  # Checks every 10 seconds
+            failureThreshold: 3 # Restarts after 3 failures (30 seconds)
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 9000
-            initialDelaySeconds: 10
-            periodSeconds: 5
+            initialDelaySeconds: 30 # Shorter delay - starts checking sooner
+            periodSeconds: 5  # More frequent checks
   strategy:
     # RollingUpdate strategy ensures zero-downtime during deployments by gradually updating pods
     type: RollingUpdate

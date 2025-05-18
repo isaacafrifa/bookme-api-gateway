@@ -19,3 +19,5 @@ data:
   GATEWAY_SERVICE_URL: "http://gateway-service.default.svc.cluster.local:9000"
   # Keycloak
   KEYCLOAK_DB_NAME: "keycloak-db"
+  KEYCLOAK_JWT_ISSUER_URI: "http://keycloak-service:8080/realms/bookme-realm"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak-service:8080/realms/bookme-realm/protocol/openid-connect/certs"
