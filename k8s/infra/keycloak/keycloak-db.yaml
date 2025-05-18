@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: keycloak-db
-          image: postgres:16.1
+          image: postgres:16.1-alpine # Lightweight Alpine-based image, perfect for local dev where minimal resource usage is required
           ports:
             - containerPort: 5432
           env:
@@ -41,6 +41,14 @@ spec:
                 secretKeyRef:
                   name: infra-secrets
                   key: KEYCLOAK_DB_PASSWORD
+          ## Small, conservative resource values — enough for basic CRUD
+          resources:
+            requests:
+              memory: "150Mi"
+              cpu: "100m"
+            limits:
+              memory: "300Mi"
+              cpu: "200m"
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: keycloak-data

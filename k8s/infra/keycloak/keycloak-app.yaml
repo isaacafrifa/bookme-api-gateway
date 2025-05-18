@@ -74,29 +74,27 @@ spec:
               value: "true"
 #            - name: KC_LOG_LEVEL
 #              value: "DEBUG"
-#            - name: KC_HTTP_PORT
-#              value: "8080"
-#            - name: JAVA_OPTS_APPEND
-#              value: "-Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
+#        Keycloak is memory-hungry, especially with multiple realms or clients. It's JVM-based, so 512Mi–1Gi is a safe lower bound for dev.
           resources:
             requests:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "200m"
             limits:
               memory: "1Gi"
-              cpu: "1"
+              cpu: "500m"
+          # Lower resource limits may lead to slow boot (~60s+); adjust readiness/liveness probes accordingly
           readinessProbe:
             httpGet:
               path: /health/ready
               port: 8080
-            initialDelaySeconds: 30
+            initialDelaySeconds: 90 # increased to account for lower resource limits
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health/live
               port: 8080
-            initialDelaySeconds: 30
+            initialDelaySeconds: 90
             periodSeconds: 10
             failureThreshold: 3
   strategy:
