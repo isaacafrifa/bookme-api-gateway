@@ -18,10 +18,36 @@ spec:
       containers:
         - name: loki
           image: grafana/loki:main
+          # Lower resources ideal for local dev. Adjust as needed for testing or production workloads.
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
           ports:
             - containerPort: 3100
           # Provide command-line arguments to the Loki server
           args: ["-config.file=/etc/loki/local-config.yaml"]
+          # Liveness probe to check Loki's health endpoint
+          # Determines if the pod should be restarted when unhealthy
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 3100
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          # Readiness probe to check Loki's ready endpoint
+          # Ensures the pod is ready to handle traffic
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3100
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
 
 ---
 

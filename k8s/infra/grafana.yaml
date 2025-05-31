@@ -16,6 +16,14 @@ spec:
       containers:
         - name: grafana
           image: grafana/grafana:10.1.0
+          # Lower resources ideal for local dev. Adjust as needed for testing or production workloads.
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
           ports:
             - containerPort: 3000   # Main Grafana UI and API port
           # Environment variables for Grafana configuration. These enable anonymous access for development purposes
@@ -35,6 +43,24 @@ spec:
                 configMapKeyRef:
                   key: GF_AUTH_DISABLE_LOGIN_FORM
                   name: grafana-configmap
+          # Liveness probe to check Grafana's health endpoint
+          # Determines if the pod should be restarted when unhealthy
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+          # Readiness probe to check Grafana's ready endpoint
+          # Ensures the pod is ready to handle traffic
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
           volumeMounts: # Mount point for datasource configuration
             - name: grafana-config
               mountPath: /etc/grafana/provisioning/datasources
@@ -88,7 +114,7 @@ data:
           exemplarTraceIdDestinations:
             - name: trace_id
               datasourceUid: tempo
-      
+
       # Tempo datasource configuration
       # Used for distributed tracing
       - name: Tempo
@@ -108,7 +134,7 @@ data:
             datasourceUid: 'loki'
           nodeGraph:
             enabled: true
-      
+
       # Loki datasource configuration
       # Used for log aggregation and querying
       - name: Loki
