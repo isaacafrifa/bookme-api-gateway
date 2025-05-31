@@ -18,6 +18,14 @@ spec:
         - name: rabbitmq
           image: rabbitmq:management
           imagePullPolicy: IfNotPresent
+          # Lower resources ideal for local dev. Adjust as needed for testing or production workloads.
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
           ports:
             - containerPort: 5672
               name: amqp
@@ -49,6 +57,24 @@ spec:
                 configMapKeyRef:
                   name: infra-config
                   key: RABBITMQ_MANAGEMENT_PORT
+        # Liveness probe to check RabbitMQ's health checks endpoint
+        # Determines if the pod should be restarted when unhealthy
+          livenessProbe:
+            httpGet:
+              path: /  # Root path to check if RabbitMQ management is up
+              port: 15672
+            initialDelaySeconds: 60 # Delay before the first check
+            periodSeconds: 10   # Check every 10 seconds
+            failureThreshold: 3  # Restart after 3 failures
+        # Readiness probe to check RabbitMQ's health checks endpoint
+        # Ensures the pod is ready to handle traffic
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 15672
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
 
 ---
 
@@ -70,4 +96,3 @@ spec:
       port: 15672
       targetPort: 15672
   type: ClusterIP
-      
