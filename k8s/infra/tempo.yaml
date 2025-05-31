@@ -17,6 +17,14 @@ spec:
       containers:
         - name: tempo
           image: grafana/tempo:2.2.2  # Using specific version for stability
+          # Lower resources ideal for local dev. Adjust as needed for testing or production workloads.
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
           args:
             - '-config.file=/etc/tempo/tempo.yaml' # Points to the mounted config file from ConfigMap
           ports:

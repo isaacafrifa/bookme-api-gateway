@@ -16,6 +16,14 @@ spec:
       containers:
         - name: prometheus
           image: prom/prometheus:v2.46.0
+          # Lower resources ideal for local dev. Adjust as needed for testing or production workloads.
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
           ports:
             - containerPort: 9090  # Default Prometheus port
           args:
@@ -24,6 +32,24 @@ spec:
           volumeMounts:
             - name: prometheus-config
               mountPath: /etc/prometheus  # Mount point for Prometheus configuration
+          # Liveness probe to check Prometheus's health endpoint
+          # Determines if the pod should be restarted when unhealthy
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          # Readiness probe to check Prometheus's ready endpoint
+          # Ensures the pod is ready to handle traffic
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
       volumes:
         - name: prometheus-config
           configMap:
