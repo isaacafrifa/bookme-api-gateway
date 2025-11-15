@@ -1,0 +1,30 @@
+# Keycloak Ingress (NGINX) — minimal config
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # dev only; enable with TLS in prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"  # increase if importing large realms
+    nginx.ingress.kubernetes.io/rewrite-target: /$1     # keep subpath from /(.*)
+    nginx.ingress.kubernetes.io/use-regex: "true"      # required by regex path below
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: auth.dashboard.com
+      http:
+        paths:
+          - path: /(.*)
+            pathType: ImplementationSpecific  # regex paths require ImplementationSpecific
+            backend:
+              service:
+                name: keycloak-service
+                port:
+                  number: 8080
+# TLS (production):
+# To enable HTTPS at the ingress, add a tls section like below and set ssl-redirect to "true" or remove it.
+# tls:
+#   - hosts:
+#       - auth.dashboard.com
+#     secretName: keycloak-tls  # pre-created TLS secret containing cert/key for the host

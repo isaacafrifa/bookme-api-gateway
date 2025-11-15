@@ -125,5 +125,5 @@ spec:
   type: ClusterIP
   ports:
     - protocol: TCP
-      port: 8080 # Port that other services in the cluster will use to connect to this service
+      port: 80 # Port that other services in the cluster will use to connect to this service
       targetPort: 8080 # Port on the Keycloak container where the application is actually running

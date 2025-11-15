@@ -19,5 +19,11 @@ data:
   GATEWAY_SERVICE_URL: "http://gateway-service.default.svc.cluster.local:9000"
   # Keycloak
   KEYCLOAK_DB_NAME: "keycloak-db"
-  KEYCLOAK_JWT_ISSUER_URI: "http://keycloak-service:8080/realms/bookme-realm"
-  KEYCLOAK_JWK_SET_URI: "http://keycloak-service:8080/realms/bookme-realm/protocol/openid-connect/certs"
+  # Internal service pods (Gateway, User, etc.) can use http://auth.dashboard.com for issuer-uri and jwk-set-uri
+  # because I updated the CoreDNS in Minikube which resolves auth.dashboard.com to the keycloak-service ClusterIP.
+  KEYCLOAK_JWT_ISSUER_URI: "http://auth.dashboard.com/realms/bookme-realm"
+  KEYCLOAK_JWK_SET_URI: "http://auth.dashboard.com/realms/bookme-realm/protocol/openid-connect/certs"
+  # Keycloak config supposed to be used in the frontend dashboard app
+  KEYCLOAK_REALM: "bookme-realm"
+  KEYCLOAK_CLIENT_ID: "bookme-dashboard"
+  KEYCLOAK_HOSTNAME: "auth.dashboard.com"

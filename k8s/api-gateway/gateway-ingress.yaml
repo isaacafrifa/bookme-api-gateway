@@ -1,0 +1,31 @@
+# API Gateway Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # dev only; enable with TLS in prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m" # increase if importing large realms
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1 #preserve the full sub‑path to the gateway e.g. Request → /users/123 and Backend receives → /users/123
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /(.*)  # regex: capture and preserve full subpath via rewrite
+            pathType: ImplementationSpecific  # regex paths require ImplementationSpecific
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 9000
+# TLS (production):
+# To enable HTTPS at the ingress, add a tls section like below and set ssl-redirect to "true" or remove it.
+# NOTE: Using host-agnostic 'regex path' and 'rewrite' preserves subpaths and avoids requiring DNS/TLS in dev.
+#       In production, prefer a host-specific Ingress with pathType: Prefix (no rewrite) and TLS enabled.
+# tls:
+#   - hosts:
+#       - api.bookme.com
+#     secretName: gateway-tls  # pre-created TLS secret containing cert/key for the host
